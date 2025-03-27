@@ -4,9 +4,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import traceback
 
-import re,time
+import re,time,traceback,csv
 
 def scroll_down(driver,height= 200):
     # slowly scroll to height
@@ -53,34 +52,66 @@ try:
 
     # find and click on each shop using class = "VkpGBb"
 
-    all_shops = driver.find_elements(By.CLASS_NAME,'VkpGBb')
-    print(len(all_shops))
+    # CSV file setup
+    csv_filename = "shops_data.csv"
 
-    for shop in all_shops:
-        shop.click()
-        time.sleep(1)
+    # Write header once (if the file is new)
+    with open(csv_filename, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Shop Name", "Phone Number"])
 
-        try:
-            phone_number_element = WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, ".LrzXr.zdqRlf.kno-fv"))
-            )
-            phone_number  = phone_number_element.text
+    is_last_page = False
 
-
-            # Combined regex for USA and Bangladesh phone numbers
-            pattern = r"^(\+1|1)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$|^(\+8801|01)\d{9}$"
-        
-            if re.match(pattern,phone_number ):
-                phone_number.append(phone_number)
-
-            print("phone_number == ",phone_number)
+    while is_last_page != True:
+        all_shops = driver.find_elements(By.CLASS_NAME,'VkpGBb')
+        print(len(all_shops))
+        for shop in all_shops:
+            shop.click()
             time.sleep(1)
+
+            shop_name = ""
+
+            try:
+                shop_name = WebDriverWait(driver, 10).until(
+                    EC.visibility_of_element_located((By.CLASS_NAME, "SPZz6b"))
+                ).text
+
+                print("shop_name === ",shop_name)
+            except:
+                pass
+
+            try:
+                phone_number_element = WebDriverWait(driver, 10).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, ".LrzXr.zdqRlf.kno-fv"))
+                )
+                phone_number  = phone_number_element.text
+
+
+                # Combined regex for USA and Bangladesh phone numbers
+                pattern = r"^(\+1|1)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$|^(\+8801|01)\d{9}$"
+            
+                if re.match(pattern,phone_number ):
+                    phone_number.append(phone_number)
+
+                print("phone_number == ",phone_number)
+                time.sleep(1)
+
+                 # Save to CSV in each iteration
+                with open(csv_filename, mode="a", newline="", encoding="utf-8") as file:
+                    writer = csv.writer(file)
+                    writer.writerow([shop_name, phone_number])
+
+                print(f"Saved: {shop_name} - {phone_number}")
+
+            except:
+                pass
+        
+        try:
+            next_button = driver.find_element(By.ID,'pnnext')
+            next_button.click()
+            time.sleep(3)
         except:
-            pass
-
-
-
-    # find/extract and regex match phone number using class = "class = LrzXr zdqRlf kno-fv"
+            is_last_page = True
 
 except Exception as e:
     print(f"An error occurred: {e}")
